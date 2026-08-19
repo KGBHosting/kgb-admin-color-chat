@@ -1,0 +1,4 @@
+compiled/
+*.amxx
+.ci/
+.DS_Store
