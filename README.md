@@ -79,6 +79,7 @@ player nicknames.
 | `kgb_acc_admin_chat` | `1` | Enable admin-only chat. |
 | `kgb_acc_private_messages` | `1` | Enable private messages. |
 | `kgb_acc_logging` | `1` | Enable chat action logging. |
+| `kgb_acc_server_name` | `""` | Display name for console/RCON messages. Empty uses the server hostname; set a value such as `"Console"` to override it. |
 
 The plugin also uses the standard AMXX `amx_show_activity` and
 `amx_flood_time` cvars for HUD identity display and `say_team @` flood control.

@@ -22,6 +22,7 @@ new g_CvarBroadcasts;
 new g_CvarAdminChat;
 new g_CvarPrivateMessages;
 new g_CvarLogging;
+new g_CvarServerName;
 new g_CvarShowActivity;
 new g_CvarFloodTime;
 new g_AdminChatFlag = ADMIN_CHAT;
@@ -88,6 +89,7 @@ public plugin_init()
 	g_CvarAdminChat = register_cvar("kgb_acc_admin_chat", "1");
 	g_CvarPrivateMessages = register_cvar("kgb_acc_private_messages", "1");
 	g_CvarLogging = register_cvar("kgb_acc_logging", "1");
+	g_CvarServerName = register_cvar("kgb_acc_server_name", "");
 
 	CreateDefaultConfig();
 	server_cmd("exec %s", CONFIG_FILE);
@@ -225,8 +227,11 @@ public ConCmdACCSay(id, level, cid)
 	new senderName[32], senderAuth[35], senderUserid;
 	GetActorInfo(id, senderName, charsmax(senderName), senderAuth, charsmax(senderAuth), senderUserid);
 
+	new displayName[32];
+	GetDisplayName(id, displayName, charsmax(displayName));
+
 	new line[CHAT_BUFFER];
-	format(line, charsmax(line), "^x04%s    : ^x01%s", senderName, message);
+	format(line, charsmax(line), "^x04%s    : ^x01%s", displayName, message);
 
 	new players[32], playerCount;
 	get_players(players, playerCount, "ch");
@@ -236,7 +241,7 @@ public ConCmdACCSay(id, level, cid)
 		SendSayText(players[i], id, line);
 	}
 
-	console_print(id, "%s    : %s", senderName, message);
+	console_print(id, "%s    : %s", displayName, message);
 
 	if (LoggingEnabled())
 	{
@@ -607,14 +612,16 @@ stock SendPrivateMessage(sender, recipient, const message[])
 {
 	new senderName[32], senderAuth[35], senderUserid;
 	new recipientName[32], recipientAuth[35], recipientUserid;
+	new senderDisplayName[32];
 
 	GetActorInfo(sender, senderName, charsmax(senderName), senderAuth, charsmax(senderAuth), senderUserid);
 	GetActorInfo(recipient, recipientName, charsmax(recipientName), recipientAuth, charsmax(recipientAuth), recipientUserid);
+	GetDisplayName(sender, senderDisplayName, charsmax(senderDisplayName));
 
 	new recipientLine[CHAT_BUFFER];
 	new senderLine[CHAT_BUFFER];
 
-	format(recipientLine, charsmax(recipientLine), "^x04%s ti salje PM: ^x01%s", senderName, message);
+	format(recipientLine, charsmax(recipientLine), "^x04%s ti salje PM: ^x01%s", senderDisplayName, message);
 	format(senderLine, charsmax(senderLine), "^x04Poslao si PM %s : ^x01%s", recipientName, message);
 
 	SendSayText(recipient, sender, recipientLine);
@@ -640,8 +647,11 @@ stock SendAdminMessage(sender, const message[], bool:echoSender)
 	new senderName[32], senderAuth[35], senderUserid;
 	GetActorInfo(sender, senderName, charsmax(senderName), senderAuth, charsmax(senderAuth), senderUserid);
 
+	new displayName[32];
+	GetDisplayName(sender, displayName, charsmax(displayName));
+
 	new line[CHAT_BUFFER];
-	format(line, charsmax(line), "^x04%s adminima : %s", senderName, message);
+	format(line, charsmax(line), "^x04%s adminima : %s", displayName, message);
 
 	new players[32], playerCount;
 	get_players(players, playerCount, "ch");
@@ -666,7 +676,7 @@ stock SendAdminMessage(sender, const message[], bool:echoSender)
 		SendSayText(sender, sender, line);
 	}
 
-	console_print(sender, "%s adminima : %s", senderName, message);
+	console_print(sender, "%s adminima : %s", displayName, message);
 }
 
 stock LogAdminMessage(sender, const message[])
@@ -775,6 +785,9 @@ stock SendHudActivityMessage(sender, const message[], colorIndex, Float:x, Float
 	new senderName[32], senderAuth[35], senderUserid;
 	GetActorInfo(sender, senderName, charsmax(senderName), senderAuth, charsmax(senderAuth), senderUserid);
 
+	new displayName[32];
+	GetDisplayName(sender, displayName, charsmax(displayName));
+
 	set_hudmessage(
 		g_HudColorValues[colorIndex][0],
 		g_HudColorValues[colorIndex][1],
@@ -800,8 +813,8 @@ stock SendHudActivityMessage(sender, const message[], colorIndex, Float:x, Float
 			{
 				if (is_user_admin(players[i]))
 				{
-					show_hudmessage(players[i], "%s :   %s", senderName, message);
-					client_print(players[i], print_notify, "%s :   %s", senderName, message);
+					show_hudmessage(players[i], "%s :   %s", displayName, message);
+					client_print(players[i], print_notify, "%s :   %s", displayName, message);
 				}
 				else
 				{
@@ -812,17 +825,17 @@ stock SendHudActivityMessage(sender, const message[], colorIndex, Float:x, Float
 
 			if (echoConsole)
 			{
-				console_print(sender, "%s :  %s", senderName, message);
+				console_print(sender, "%s :  %s", displayName, message);
 			}
 		}
 		case 2:
 		{
-			show_hudmessage(0, "%s :   %s", senderName, message);
-			client_print(0, print_notify, "%s :   %s", senderName, message);
+			show_hudmessage(0, "%s :   %s", displayName, message);
+			client_print(0, print_notify, "%s :   %s", displayName, message);
 
 			if (echoConsole)
 			{
-				console_print(sender, "%s :  %s", senderName, message);
+				console_print(sender, "%s :  %s", displayName, message);
 			}
 		}
 		default:
@@ -1028,6 +1041,36 @@ stock GetActorInfo(id, name[], nameLen, authId[], authIdLen, &userid)
 	userid = 0;
 }
 
+stock GetDisplayName(id, name[], nameLen)
+{
+	if (id > 0 && is_user_connected(id))
+	{
+		get_user_name(id, name, nameLen);
+		return;
+	}
+
+	if (g_CvarServerName != 0)
+	{
+		get_pcvar_string(g_CvarServerName, name, nameLen);
+		trim(name);
+	}
+	else
+	{
+		name[0] = 0;
+	}
+
+	if (!name[0])
+	{
+		get_user_name(0, name, nameLen);
+		trim(name);
+	}
+
+	if (!name[0])
+	{
+		copy(name, nameLen, "Console");
+	}
+}
+
 stock CreateDefaultConfig()
 {
 	if (file_exists(CONFIG_FILE))
@@ -1055,6 +1098,7 @@ stock CreateDefaultConfig()
 	fputs(file, "kgb_acc_admin_chat 1^n");
 	fputs(file, "kgb_acc_private_messages 1^n");
 	fputs(file, "kgb_acc_logging 1^n");
+	fputs(file, "kgb_acc_server_name ^"^"^n");
 	fclose(file);
 
 	server_print("[KGB] Created %s", CONFIG_FILE);
